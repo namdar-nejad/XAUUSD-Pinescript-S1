@@ -1,0 +1,53 @@
+// @version=4
+strategy("Strat1", shorttitle="S", overlay = true)
+
+greenCandle = (close > open)
+redCandle = (close < open)
+GGR = greenCandle[2] and greenCandle[1] and redCandle
+RRG = redCandle[1] and redCandle[2] and greenCandle[0]
+
+// Calculates the money flow index value
+mfi_period = input(1, title="MFI Period", minval=1)
+
+calc_mfi(len) =>
+    tp = nz(hlc3)  // typical price
+    pos_mf = sum(change(tp) > 0 ? tp : 0, len) * volume // pos. money flow
+    neg_mf = sum(change(tp) < 0 ? tp : 0, len) * volume // neg. money flow
+    mr = pos_mf / neg_mf // money ratio
+    mfi = 100 - (100 / (1 + mr))
+    mfi
+
+mfi_val = calc_mfi(mfi_period)
+
+bar1 = close[2] - open[2]
+bar2 = close[1] - open[1]
+bar3 = close[0] - open[0]
+
+getAction() =>
+
+	if RRG
+		fib_dir = 0.0
+		if mfi_val[1] == 0
+			fib_dir := low[1] - open[2]
+		else
+			fib_dir := high[1] - open[2]
+
+		if not ((abs(bar1) <  bar3 and abs(bar2) > bar3) or (abs(bar2) <  bar3 and abs(bar1) > bar3))
+			fib_dir := -1 * fib_dir
+
+		fib_dir
+
+start = timestamp(2021, 8, 12, 0, 0)
+end = timestamp(2022, 2, 12, 0, 0)
+
+if time >= start and time <= end
+	// strategy.entry("Long", strategy.long, 10000.0, when=getAction() > 0 ? 1 : na)
+	// strategy.entry("Short", strategy.short, 10000.0, when=getAction() <= 0 ? 1 : na)
+	
+	strategy.close("Long", when = getAction() > 0 ? 1 : na)
+	strategy.close("Short", when = getAction() <= 0 ? 1 : na)
+
+plotshape(getAction() > 0 ? 1 : na, color=color.lime, style=shape.arrowup, offset = 1)
+plotshape(getAction() <= 0 ? 1 : na, color=color.red, style=shape.arrowdown, offset = 1)
+// plot(MFI, title="MFI", color=color.teal, linewidth=2)
+

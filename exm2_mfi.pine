@@ -1,0 +1,78 @@
+//@version=4
+study("StackOverFlow", shorttitle="SOF", overlay=false, format=format.price)
+
+//////////////////// Money Flow Index Start
+
+// Input
+mfi_period = input(14, title="MFI Period", minval=1)
+mfi_upper = input(80, title="Upper Treshold Line", minval=1)
+mfi_middle = input(50, title="Upper Treshold Line", minval=1)
+mfi_lower = input(20, title="Lower Treshold Line", minval=1)
+
+
+// Calculates the money flow index value. 
+calc_mfi(len) =>
+    tp = nz(hlc3)  // typical price
+    pos_mf = sum(change(tp) > 0 ? tp : 0, len) * volume // pos. money flow
+    neg_mf = sum(change(tp) < 0 ? tp : 0, len) * volume // neg. money flow
+    mr = pos_mf / neg_mf // money ratio
+    mfi = 100 - (100 / (1 + mr))
+    mfi
+
+mfi_val = calc_mfi(mfi_period)
+
+
+// Drawings
+plot(mfi_val, title="MFI", color=color.teal, linewidth=2)
+plotshape(mfi_val, style=shape.labeldown, location=location.absolute, color=color.teal,  textcolor=color.white, show_last=1, text="MFI", transp=0, title="MFI")
+
+// hline(mfi_upper, title="Upper Treshold", color=color.gray, linestyle=hline.style_dotted, linewidth=2)
+// hline(mfi_middle, title="Middle Treshold", color=color.gray, linestyle=hline.style_dotted, linewidth=2)
+// hline(mfi_lower, title="Lower Treshold", color=color.gray, linestyle=hline.style_dotted, linewidth=2)
+
+//////////////////// Money Flow Index Finish
+
+//////////////////// DMI Start
+
+// Input
+len = input(title="Length", type=input.integer, defval=14)
+th = input(title="Threshold", type=input.integer, defval=20)
+
+// Calculates DMI value. 
+TrueRange = max(max(high - low, abs(high - nz(close[1]))), abs(low - nz(close[1])))
+DirectionalMovementPlus = high - nz(high[1]) > nz(low[1]) - low ? max(high - nz(high[1]), 0) : 0
+DirectionalMovementMinus = nz(low[1]) - low > high - nz(high[1]) ? max(nz(low[1]) - low, 0) : 0
+
+SmoothedTrueRange = 0.0
+SmoothedTrueRange := nz(SmoothedTrueRange[1]) - nz(SmoothedTrueRange[1]) / len + TrueRange
+SmoothedDirectionalMovementPlus = 0.0
+SmoothedDirectionalMovementPlus := nz(SmoothedDirectionalMovementPlus[1]) - 
+   nz(SmoothedDirectionalMovementPlus[1]) / len + DirectionalMovementPlus
+SmoothedDirectionalMovementMinus = 0.0
+SmoothedDirectionalMovementMinus := nz(SmoothedDirectionalMovementMinus[1]) - 
+   nz(SmoothedDirectionalMovementMinus[1]) / len + DirectionalMovementMinus
+
+DIPlus = SmoothedDirectionalMovementPlus / SmoothedTrueRange * 100
+DIMinus = SmoothedDirectionalMovementMinus / SmoothedTrueRange * 100
+
+// Drawings
+plot(DIPlus, color=color.green, title="DI+", transp=0)
+plotshape(DIPlus, style=shape.labeldown, location=location.absolute, color=color.green,  textcolor=color.white, show_last=1, text="DIPlus", transp=0, title="DIPlus")
+
+plot(DIMinus, color=color.red, title="DI-", transp=0)
+plotshape(DIMinus, style=shape.labeldown, location=location.absolute, color=color.red,  textcolor=color.white, show_last=1, text="DIMinus", transp=0, title="DIMinus")
+
+
+
+// Visual Alerts
+buy = (DIPlus > DIMinus) and mfi_val > 50
+sell = (DIMinus > DIPlus) and mfi_val > 50
+
+plotshape(buy==1? buy : na, title="ADX Up", style=shape.square,location=location.top, color=color.green, transp=0, size=size.tiny)
+plotshape(sell==1? sell : na, title="ADX Down", style=shape.square,location=location.bottom, color=color.red, transp=0, size=size.tiny)
+
+// Condition Alerts
+alertcondition(buy==1 ? buy : na, title="Buy Alert", message="Buy, {{close}}")
+alertcondition(sell==1 ? sell :na, title="Sell Alert", message="Sell, {{close}}")
+
+//////////////////// DMI Finish

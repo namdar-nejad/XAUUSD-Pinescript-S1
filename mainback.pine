@@ -1,14 +1,17 @@
 // @version=4
 strategy("Strat1", shorttitle="S", overlay = true)
 
+// candle types
 greenCandle = (close > open)
 redCandle = (close < open)
-GGR = greenCandle[2] and greenCandle[1] and redCandle
-RRG = redCandle[1] and redCandle[2] and greenCandle[0]
+// the numberring in the brackets is weired but it's right
+GGR = greenCandle[2] and greenCandle[1] and redCandle	// green, green, red 
+RRG = redCandle[2] and redCandle[1] and greenCandle[0]	// red, red, green
 
 // Calculates the money flow index value
 mfi_period = input(1, title="MFI Period", minval=1)
 
+// Function to calculate the mfi
 calc_mfi(len) =>
     tp = nz(hlc3)  // typical price
     pos_mf = sum(change(tp) > 0 ? tp : 0, len) * volume // pos. money flow
@@ -17,19 +20,25 @@ calc_mfi(len) =>
     mfi = 100 - (100 / (1 + mr))
     mfi
 
+// mfi_val holds the mfi at each point
 mfi_val = calc_mfi(mfi_period)
 
+
+
+
+getAction() =>
+
+// the bars we are working with (bar1 being the first and bar3 being the last bar)
 bar1 = close[2] - open[2]
 bar2 = close[1] - open[1]
 bar3 = close[0] - open[0]
 
-getAction() =>
-
+// if red, red, green
 	if RRG
 		fib_dir = 0.0
 		if mfi_val[1] == 0
 			fib_dir := low[1] - open[2]
-		else
+		else // mfi_val == 1
 			fib_dir := high[1] - open[2]
 
 		if not ((abs(bar1) <  bar3 and abs(bar2) > bar3) or (abs(bar2) <  bar3 and abs(bar1) > bar3))
@@ -37,8 +46,9 @@ getAction() =>
 
 		fib_dir
 
-start = timestamp(2021, 8, 12, 0, 0)
-end = timestamp(2022, 2, 12, 0, 0)
+// start and end timestamp for backtesting
+start = timestamp(2022, 8, 12, 0, 0)
+end = timestamp(2021, 8, 12, 0, 0)
 
 if time >= start and time <= end
 	// strategy.entry("Long", strategy.long, 10000.0, when=getAction() > 0 ? 1 : na)
